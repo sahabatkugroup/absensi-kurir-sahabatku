@@ -87,8 +87,8 @@
       .line-card{grid-template-columns:1fr 80px 120px 100px 80px}
       .line-card-tambahan{grid-template-columns:1fr 1fr 100px}
     }
-    @media (max-width:480px){
-      .line-card{grid-template-columns:1fr 70px 110px 90px 70px}
+    @media (max-width:6000px){
+      .line-card{grid-template-columns:4fr 60px 110px 90px 70px}
       .line-card-tambahan{grid-template-columns:1fr 1fr 90px}
     }
   </style>
@@ -960,7 +960,7 @@
       username: currentUser, noNota: data.noNota, total: data.total
     });
 
-    alert(`Tersimpan ke Firebase ✅ (No Nota ${data.noNota})`);
+    alert(`Nota Tersimpan ✅ (No Nota ${data.noNota})`);
     refreshNotaHistory();
     updatePreviewFilename();
   }
