@@ -1,622 +1,696 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Jadwal & Absensi Kurir — Sahabatku Delivery</title>
-<style>
-/* ===== Reset & Root ===== */
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --primary:#0288d1; --primary-dark:#05668d;
-  --bg:#f0f4f8; --ok:#43a047; --danger:#e53935;
-  --text:#233; --radius:14px; --shadow:0 10px 25px rgba(0,0,0,.10);
-  --pending:#f9a825; --popup-duration:5000ms;
-}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text);}
-.container{max-width:1200px;margin:16px auto;padding:16px}
-.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
-h1{color:var(--primary-dark);text-align:center;font-weight:800;font-size:clamp(20px,3.8vw,32px);margin-bottom:10px}
-
-/* ===== Topbar & Admin ===== */
-.topbar, .admin-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:8px 0 14px}
-.topbar .btn, .admin-bar .btn{
-  padding:10px 14px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer;transition:all .25s ease;
-  box-shadow:0 2px 6px rgba(0,0,0,.12);
-}
-.topbar .btn:hover, .admin-bar .btn:hover{filter:brightness(.95);transform:translateY(-1px);}
-.topbar .btn.ghost{background:#e8f4fb;color:var(--primary-dark)}
-.topbar .btn.active{background:var(--primary-dark)}
-.admin-bar .btn.alt{background:#e8f4fb;color:var(--primary-dark)}
-.admin-bar .btn.danger{background:var(--danger)}
-.admin-bar{display:none}
-
-/* ===== Tabs ===== */
-.tab{display:none}.tab.active{display:block}
-.table-wrap{overflow:auto;border-radius:12px;border:1px solid #eef3f7;margin-top:12px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:10px;border-bottom:1px solid #eef3f7;text-align:center}
-thead th{position:sticky;top:0;background:var(--primary);color:#fff;z-index:1}
-tbody tr:hover td{background:#f2fbff}
-
-/* ===== Badges & Buttons ===== */
-.badge{display:inline-block;padding:6px 12px;border-radius:999px;font-weight:600;font-size:12px}
-.badge.on{background:#e9f7ef;color:#1b5e20;border:1px solid #cdebd6}
-.badge.off{background:#ffebee;color:#b71c1c;border:1px solid #ffcdd2}
-.badge.pending{background:#fff8e1;color:#f9a825;border:1px solid #ffe082}
-.btn-mini{padding:6px 10px;border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;transition:all .25s ease;box-shadow:0 2px 6px rgba(0,0,0,.12);}
-.btn-on{background:var(--ok)}.btn-off{background:var(--danger)}.btn-pending{background:var(--pending)}
-.btn-on:hover,.btn-off:hover,.btn-pending:hover{filter:brightness(.95);transform:translateY(-1px)}
-
-/* ===== Overlay Login ===== */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9999}
-.login{background:#fff;width:min(92vw,460px);border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.10);padding:22px;text-align:center}
-.login h3{color:var(--primary-dark);margin-bottom:10px}
-.login input{width:100%;padding:12px;border:1px solid #cfe5f5;border-radius:10px;margin:8px 0}
-.login .btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:800;cursor:pointer}
-.small{font-size:13px;color:#666;margin-top:8px}
-
-/* ===== Popup ===== */
-#popup{
-  position:fixed;top:14px;right:14px;width:min(92vw,340px);
-  background:rgba(255,255,255,.95);color:#123;border:1px solid #e8eef5;
-  border-left:6px solid var(--ok);border-radius:14px;
-  box-shadow:0 12px 30px rgba(0,0,0,.16);
-  padding:12px 16px;display:none;z-index:9998;
-  backdrop-filter:saturate(1.2) blur(4px);
-  opacity:0;transform:translateY(-12px);
-  transition:opacity .35s ease, transform .35s ease, border-color .25s ease;
-}
-#popup.show{display:block;opacity:1;transform:translateY(0);}
-#popup .title{font-weight:800;margin-bottom:4px;font-size:14px;display:flex;align-items:center;gap:6px}
-#popup .meta{font-size:12px;color:#566}
-
-/* ===== Dropdown modern ===== */
-select{padding:10px 12px;border:1px solid #cfe5f5;border-radius:10px;min-width:200px;background:#f8fcff;cursor:pointer;transition:all .25s ease;box-shadow:0 2px 6px rgba(0,0,0,.08);}
-select:hover, select:focus{border-color:var(--primary);box-shadow:0 4px 12px rgba(0,0,0,.12);}
-#pengajuanForm{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;justify-content:center}
-#pengajuanForm { background:#f8fcff;padding:14px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);border:1px solid #e3eef7;}
-#pengajuanForm select { min-width:180px;padding:10px 12px;border-radius:10px;border:1px solid #cfe5f5;background:white;font-weight:500;}
-#pengajuanForm button { background:var(--primary);border-radius:10px;padding:10px 16px;color:#fff;font-weight:600;transition:all .25s ease;}
-#pengajuanForm button:hover { filter:brightness(0.95);transform:translateY(-1px);}
-
-/* ===== Responsive ===== */
-@media (max-width:600px){.topbar{gap:8px}.topbar .btn{flex:1}th, td{padding:9px}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sahabatku Delivery — Admin Panel (Advanced)</title>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <style>
+    :root{ --bg:#f7fbff; --card:#fff; --text:#0b3b5a; --muted:#5c6f81; --accent:#1e90ff; --danger:#ff6b6b; --border:#e7eef6 }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);margin:0}
+    header{position:sticky;top:0;z-index:40;background:linear-gradient(90deg,#f9d423,#ff4e50);color:#000;box-shadow:0 8px 26px rgba(0,0,0,.08)}
+    header .bar{max-width:1200px;margin:auto;padding:14px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .badge{background:#ffcd1f;border-radius:999px;padding:3px 10px;font-weight:800}
+    .wrap{max-width:1200px;margin:18px auto;padding:0 12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 28px rgba(10,50,90,.06);padding:14px;margin-bottom:14px}
+    .row{display:flex;flex-wrap:wrap;gap:10px}
+    .row > *{flex:1 1 240px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+    input,select,textarea{width:100%;padding:8px;border:1px solid var(--border);border-radius:10px}
+    .btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
+    .btn.secondary{background:#eef6ff;color:var(--text);border:1px solid var(--border)}
+    .btn.ghost{background:transparent;border:1px dashed var(--border);color:var(--text)}
+    .btn.danger{background:var(--danger);color:#fff}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tabs .btn{background:#eef6ff;color:var(--text)}
+    .tabs .btn.active{background:var(--accent);color:#fff}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid var(--border);padding:8px;text-align:left;font-size:14px}
+    th{background:#f1f6ff}
+    .hidden{display:none}
+    #toast{position:fixed;right:16px;bottom:16px;background:#0ea5e9;color:#fff;border-radius:12px;padding:10px 14px;display:none;z-index:999}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef6ff;border:1px solid var(--border);font-size:12px}
+    .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  </style>
 </head>
 <body>
-<div class="container">
-<div class="card">
-<h1>Jadwal & Absensi Kurir — Sahabatku Delivery</h1>
+  <header>
+    <div class="bar">
+      <div class="flex"><strong>📊 Admin Panel</strong><span class="badge">👑 Admin</span></div>
+      <button id="btnLogout" class="btn danger hidden">Logout</button>
+    </div>
+  </header>
 
-<div class="topbar" id="topbar">
-  <button class="btn active" data-tab="tab-jadwal">Jadwal Off</button>
-  <button class="btn" data-tab="tab-rekap">Rekap & Keaktifan</button>
-  <button class="btn ghost" id="btn-absensi-tab" data-tab="tab-absensi" style="display:none;">Absensi Harian</button>
-  <button class="btn ghost" id="btn-approval-tab" data-tab="tab-approval" style="display:none;">Approval Kurir</button>
-  <span class="split"></span>
-  <div class="month-wrap">
-    <label for="monthPick"><small>Bulan:</small></label>
-    <input type="month" id="monthPick"/>
-  </div>
-  <button class="btn" id="btn-login">Login</button>
-</div>
+  <div class="wrap">
+    <!-- Login -->
+    <div id="loginCard" class="card">
+      <h2>Login Admin</h2>
+      <div class="row">
+        <div><label>Email</label><input id="loginEmail" type="email" placeholder="admin@email.com"></div>
+        <div><label>Password</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+      </div>
+      <button id="btnLogin" class="btn">Masuk</button>
+      <div id="loginMsg" style="color:#c0392b;font-size:13px;margin-top:6px"></div>
+    </div>
 
-<div class="admin-bar" id="adminBar">
-  <button class="btn alt" id="btn-save">Save Data (Firestore)</button>
-  <button class="btn" id="btn-add">Tambah Kurir</button>
-  <button class="btn danger" id="btn-del">Hapus Kurir</button>
-  <button class="btn alt" id="btn-regen">Regenerasi Off</button>
-  <button class="btn" id="btn-logout" style="display:none">Logout</button>
-</div>
+    <!-- App -->
+    <div id="app" class="hidden">
+      <div class="card">
+        <div class="tabs">
+          <button class="btn active" data-tab="tabNota">📝 Kelola Nota</button>
+          <button class="btn" data-tab="tabRekap">📈 Rekap & Riwayat</button>
+          <button class="btn" data-tab="tabKurir">👥 Manajemen Kurir</button>
+          <button class="btn" data-tab="tabOngkir">🚚 Manajemen Ongkir</button>
+        </div>
+      </div>
 
-<!-- Tabs -->
-<div id="tab-jadwal" class="tab active">
-  <div id="pengajuanForm">
-    <select id="pengajuanTanggal"></select>
-    <select id="penggantiKurir"></select>
-    <select id="tanggalTukar"></select>
-    <button class="btn" id="btnAjukan">Ajukan Tukar Off</button>
-  </div>
-  <div class="table-wrap">
-    <table id="tableJadwal">
-      <thead><tr><th>Tanggal</th><th>Hari</th><th>Kurir Off</th><th>Pengganti</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
+      <!-- Kelola Nota -->
+      <div id="tabNota" class="card tab">
+        <div class="row">
+          <div>
+            <label>Nama Kurir</label>
+            <select id="filterKurir"><option value="">— Semua Kurir —</option></select>
+          </div>
+          <div>
+            <label>Tanggal</label>
+            <input type="date" id="filterTanggal">
+          </div>
+          <div>
+            <label>Bulan</label>
+            <input type="month" id="filterBulan">
+          </div>
+          <div>
+            <label>Tahun</label>
+            <input type="number" id="filterTahun" min="2020" placeholder="2025">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Cari Nota (No Nota)</label>
+            <input id="filterCariNota" list="listNoNota" placeholder="Pilih/ketik No Nota">
+            <datalist id="listNoNota"></datalist>
+          </div>
+          <div style="align-self:end">
+            <button class="btn secondary" onclick="applyFilter()">Filter</button>
+            <button class="btn secondary" onclick="clearFilter()">Reset</button>
+            <button class="btn" onclick="showAddForm()">+ Tambah Nota</button>
+            <button class="btn secondary" onclick="exportCSV()">⬇ Export CSV (hasil filter)</button>
+          </div>
+        </div>
 
-<div id="tab-absensi" class="tab">
-  <div class="table-wrap">
-    <table id="tableAbsensi">
-      <thead><tr><th>Tanggal</th><th>Nama Kurir</th><th>Status</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
+        <div id="notaList"></div>
 
-<div id="tab-rekap" class="tab">
-  <div class="table-wrap">
-    <table id="tableRekap">
-      <thead><tr><th>Nama Kurir</th><th>Total On</th><th>Total Off</th><th>Skor Keaktifan</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
+        <!-- Form Tambah/Edit -->
+        <div id="notaForm" class="card hidden">
+          <h3 id="formTitle">Tambah Nota</h3>
+          <div class="row">
+            <div>
+              <label>Kurir (dropdown / ketik manual)</label>
+              <input id="formKurir" list="listKurir" placeholder="Pilih/ketik kurir">
+              <datalist id="listKurir"></datalist>
+            </div>
+            <div>
+              <label>No Nota</label>
+              <input id="formNoNota" placeholder="NN-001 / otomatis">
+            </div>
+          </div>
 
-<div id="tab-approval" class="tab">
-  <div class="table-wrap">
-    <table id="tableApproval">
-      <thead><tr><th>Tanggal</th><th>Kurir Asal</th><th>Pengganti</th><th>Status</th><th>Aksi</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
-</div>
-</div>
+          <h4>Item</h4>
+          <table id="itemTable">
+            <thead><tr><th>Nama</th><th>Qty</th><th>Harga</th><th>Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="flex"><button class="btn ghost" onclick="addItemRow()">+ Item</button></div>
 
-<!-- Overlay Login -->
-<div class="overlay" id="overlay">
-  <div class="login">
-    <h3>Login Admin (Firebase)</h3>
-    <input id="fbEmail" placeholder="Email admin (Firebase)"/>
-    <input id="fbPass" placeholder="Password (Firebase)" type="password"/>
-    <button class="btn" id="doFirebaseLogin">Login</button>
-    <div class="small">Akses admin hanya untuk UID: <code>J2rOyqBbEVaehucXpJl7jHh90Iz2</code></div>
-    <div style="margin-top:10px">
-      <button class="btn ghost" id="closeOverlay">Tutup</button>
+          <div class="row">
+            <div><label>Ongkir</label><input id="formOngkir" type="number" value="0"></div>
+            <div><label>Tambahan</label><input id="formTambahan" type="number" value="0"></div>
+            <div><label>Keterangan</label><input id="formText" placeholder="Catatan…"></div>
+          </div>
+
+          <h4>Total: Rp <span id="formTotal">0</span></h4>
+          <div class="flex">
+            <button class="btn" onclick="saveNota()">Simpan</button>
+            <button class="btn danger" onclick="cancelNota()">Batal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rekap & Riwayat -->
+      <div id="tabRekap" class="card tab hidden">
+        <div class="row">
+          <div>
+            <label>Kurir</label>
+            <select id="rekapKurir"><option value="">— Semua Kurir —</option></select>
+          </div>
+          <div>
+            <label>Bulan</label>
+            <input type="month" id="rekapBulan">
+          </div>
+          <div style="align-self:end"><button class="btn secondary" onclick="renderRekap()">Terapkan</button></div>
+        </div>
+
+        <div class="flex">
+          <span class="pill">Mode: Total Nota per Kurir</span>
+          <span class="pill">Mode: Penghasilan (tanggal, jumlah, ongkir, tambahan, total)</span>
+        </div>
+
+        <div id="rekapRingkas" style="margin-top:10px"></div>
+        <div id="rekapTabel"></div>
+        <div class="flex"><button class="btn secondary" onclick="exportCSVRekap()">⬇ Export CSV (Rekap)</button></div>
+      </div>
+
+      <!-- Manajemen Kurir -->
+      <div id="tabKurir" class="card tab hidden">
+        <div class="row">
+          <div>
+            <label>Tambah Kurir Baru</label>
+            <input id="kurirBaru" placeholder="Nama kurir (username)">
+          </div>
+          <div>
+            <label>Password (kurir)</label>
+            <input id="kurirPass" type="password" placeholder="minimal 6 karakter">
+          </div>
+        </div>
+        <div class="flex">
+          <button class="btn" onclick="tambahKurir()">+ Tambah Kurir</button>
+          <span class="pill">Akun dibuat di Auth (email: username@kurir.local) & daftar kurir di DB.</span>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+        <div class="row">
+          <div>
+            <label>Hapus Kurir</label>
+            <select id="kurirManage"></select>
+          </div>
+          <div style="align-self:end">
+            <button class="btn danger" onclick="hapusKurir()">Hapus Kurir</button>
+          </div>
+        </div>
+        <small>Catatan: Menghapus kurir akan menonaktifkan akses di aplikasi kurir dengan menghapus entri kurir di DB. (Penghapusan akun Auth penuh memerlukan server admin.)</small>
+      </div>
+
+      <!-- Manajemen Ongkir -->
+      <div id="tabOngkir" class="card tab hidden">
+        <div class="row">
+          <div>
+            <label>Wilayah</label>
+            <input id="wilayahInput" list="wilayahList" placeholder="Pilih/ketik wilayah">
+            <datalist id="wilayahList"></datalist>
+          </div>
+          <div>
+            <label>Harga Ongkir</label>
+            <input id="hargaOngkir" type="number" placeholder="0">
+          </div>
+          <div style="align-self:end">
+            <button class="btn" onclick="simpanOngkir()">💾 Save/Update</button>
+            <button class="btn danger" onclick="hapusOngkir()">🗑 Hapus</button>
+          </div>
+        </div>
+        <h4>Data Wilayah</h4>
+        <div id="ongkirTabel"></div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Popup -->
-<div id="popup">
-  <div class="title"><span class="icon">✅</span><span id="popTitle">Semua On</span></div>
-  <div class="meta" id="popMeta">–</div>
-</div>
+  <div id="toast">✅ Login sebagai Admin</div>
 
-<!-- Firebase SDK (compat) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-<script>
-// ===== Firebase Init =====
-const firebaseConfig = {
-  apiKey: "AIzaSyD2tC4MlutCuUZvg06yGKT3jveaTGjtZAg",
-  authDomain: "absensikurir.firebaseapp.com",
-  projectId: "absensikurir",
-  storageBucket: "absensikurir.firebasestorage.app",
-  messagingSenderId: "395111603667",
-  appId: "1:395111603667:web:119be647937508d890a326",
-  measurementId: "G-V4L30EH9GP"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const ADMIN_UID = "J2rOyqBbEVaehucXpJl7jHh90Iz2";
+  const firebaseConfig = {
+    apiKey: "AIzaSyCtva8TeL40-WotK4kFL_vL8uUXL3GDfww",
+    authDomain: "sahabatkuu-bisa.firebaseapp.com",
+    databaseURL: "https://sahabatkuu-bisa-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "sahabatkuu-bisa",
+    storageBucket: "sahabatkuu-bisa.firebasestorage.app",
+    messagingSenderId: "315555564115",
+    appId: "1:315555564115:web:56f46dbceb8c154589d4a6",
+    measurementId: "G-PFGYL96VPS"
+  };
+  const ADMIN_UID = "kSW4ThusrwhUFCQeTsnPV1VNaR72";
 
-// ===== Firestore Refs =====
-const MASTER_DOC = db.collection('appdata').doc('master');
-const JADWAL_COLLECTION = db.collection('jadwal_off');
-const PENGAJUAN_COLLECTION = db.collection('pengajuan_off');
+  // Init
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
 
-// ===== State =====
-let kurirList = ["Sonia","Pitri","Hambali","Alfan","Gilang","Hafiz","Kardi","Robi","Ulum","Eblek","Nandar"]; // fallback awal
-let jadwalData = {}; // { 'YYYY-MM': [ {tanggal, off, pengganti} ] }
-let isFirebaseAdmin = false;
-let unsubJadwal = null;  // listener jadwal per-bulan
-let pengajuanCache = []; // diisi dari listener tunggal
-const idDays = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  // State
+  let allData = {}; // {kurir:{id:nota}}
+  let kurirSet = new Set();
+  let ongkirData = {};
+  let editing = null; // {user,id,createdAt}
 
-// ===== Utils =====
-const pad2 = n => String(n).padStart(2,'0');
-const fmtISO = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-const parseISODate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+  // Helpers
+  const el = id => document.getElementById(id);
+  const qs = s => document.querySelector(s);
+  const qsa = s => Array.from(document.querySelectorAll(s));
+  const money = n => (Number(n)||0).toLocaleString('id-ID');
 
-// ===== Popup =====
-function popupShow(ok,title,meta){
-  const el=document.getElementById('popup'); 
-  el.classList.remove('ok','danger','pending'); 
-  el.classList.add(ok==='pending'?'pending':ok?'ok':'danger');
-  el.querySelector('.icon').textContent=ok==='pending'?'⏳':ok?'✅':'⚠️'; 
-  document.getElementById('popTitle').textContent=title;
-  document.getElementById('popMeta').textContent=meta||'';
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),5000);
-}
-
-// ===== Generate Jadwal Adil =====
-function generateFairOffForMonth(ym){
-  const [y,m]=ym.split('-').map(Number), year=y, month=m-1;
-  const days = new Date(year, month+1, 0).getDate();
-  const pool = kurirList.slice();
-  if (pool.length === 0) { jadwalData[ym]=[]; return; }
-  const counts = Object.fromEntries(pool.map(k=>[k,0]));
-  const arr=[];
-  for(let d=1; d<=days; d++){
-    const minV = Math.min(...Object.values(counts));
-    const cands = pool.filter(k=>counts[k]===minV);
-    const pick = cands[Math.floor(Math.random()*cands.length)];
-    counts[pick]+=1;
-    const dt=new Date(year, month, d);
-    arr.push({ tanggal: fmtISO(dt), off: pick, pengganti: '' });
-  }
-  jadwalData[ym]=arr;
-}
-
-// ===== Renderers =====
-function renderJadwal(ym){
-  const tbody = document.querySelector('#tableJadwal tbody'); 
-  tbody.innerHTML='';
-  if(!jadwalData[ym]) return;
-
-  jadwalData[ym].forEach(it=>{
-    const d = parseISODate(it.tanggal);
-    const hari = idDays[d.getDay()];
-    const tr = document.createElement('tr');
-
-    const tdTanggal = document.createElement('td'); tdTanggal.textContent = it.tanggal;
-    const tdHari = document.createElement('td'); tdHari.textContent = hari;
-
-    const tdOff = document.createElement('td');
-    const badge = document.createElement('span');
-    badge.className = it.off ? 'badge off' : 'badge on';
-    badge.textContent = it.off || 'Semua On';
-    badge.style.cursor = 'pointer';
-    badge.title = 'Klik untuk mengajukan tukar off';
-    badge.onclick = ()=>{
-      document.getElementById('pengajuanTanggal').value = it.tanggal;
-      setupFormPengajuan();
-      popupShow('pending','Tanggal dipilih','Silakan lengkapi form pengajuan');
-    };
-    tdOff.appendChild(badge);
-
-    const tdPeng = document.createElement('td'); 
-    tdPeng.textContent = it.pengganti || '—';
-
-    if(isFirebaseAdmin){
-      badge.oncontextmenu = async (e)=>{
-        e.preventDefault();
-        const nama = prompt('Set OFF hari ini untuk kurir (kosongkan untuk Semua On):', it.off || '');
-        if(nama!==null){
-          const newOff = nama.trim();
-          it.off = newOff;
-          it.pengganti = '';
-          await saveFirestoreJadwal(ym);
-          popupShow(true,'OFF diperbarui',`${it.tanggal}: ${it.off || 'Semua On'}`);
-        }
-      };
-    }
-
-    tr.append(tdTanggal, tdHari, tdOff, tdPeng);
-    tbody.appendChild(tr);
-  });
-}
-
-function renderAbsensi(ym){
-  const tbody = document.querySelector('#tableAbsensi tbody'); 
-  tbody.innerHTML='';
-  if(!jadwalData[ym]) return;
-  jadwalData[ym].forEach(it=>{
-    kurirList.forEach(async k=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${it.tanggal}</td><td>${k}</td>`;
-      let status = (k===it.off)?'Off':'On';
-      const tdS=document.createElement('td');
-      if(isFirebaseAdmin){
-        const btn=document.createElement('button');
-        btn.className='btn-mini ' + (status==='On'?'btn-on':'btn-off');
-        btn.textContent=status;
-        btn.onclick=async ()=>{
-          // Toggle: jika sekarang On, maka set off ke k; jika Off, kosongkan (semua on)
-          const ymLocal = it.tanggal.slice(0,7);
-          const row = jadwalData[ymLocal].find(r=>r.tanggal===it.tanggal);
-          row.off = (status==='On') ? k : '';
-          row.pengganti = '';
-          await saveFirestoreJadwal(ymLocal);
-        };
-        tdS.appendChild(btn);
-      } else { 
-        const span=document.createElement('span'); 
-        span.className='badge '+(status==='On'?'on':'off'); 
-        span.textContent=status; 
-        tdS.appendChild(span); 
-      }
-      tr.appendChild(tdS); 
-      tbody.appendChild(tr);
-    });
-  });
-}
-
-function renderRekap(ym){
-  const tbody=document.querySelector('#tableRekap tbody'); 
-  tbody.innerHTML='';
-  if(!jadwalData[ym]) return;
-  const arr=jadwalData[ym]; 
-  const sum=Object.fromEntries(kurirList.map(k=>[k,{on:0,off:0}]));
-  arr.forEach(it=>{ kurirList.forEach(k=>{ if(k===it.off) sum[k].off++; else sum[k].on++; }); });
-  kurirList.forEach(k=>{
-    const {on,off}=sum[k]; const total=on+off||1; const skor=Math.round((on/total)*100);
-    const tr=document.createElement('tr'); 
-    tr.innerHTML=`<td>${k}</td><td>${on}</td><td>${off}</td><td>${skor}%</td>`; 
-    tbody.appendChild(tr);
-  });
-}
-
-function renderApproval(){
-  const tbody = document.querySelector('#tableApproval tbody'); 
-  tbody.innerHTML='';
-  pengajuanCache.forEach(item=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${item.tanggal}</td><td>${item.asal}</td><td>${item.pengganti}</td><td>${item.status}</td>`;
-    if(item.status==='Pending' && isFirebaseAdmin){
-      const tdA = document.createElement('td');
-
-      const btnApprove = document.createElement('button'); 
-      btnApprove.textContent = 'Approve'; 
-      btnApprove.className = 'btn-mini btn-on';
-      btnApprove.onclick = async()=>{
-        if(!confirm('Yakin ingin menyetujui pengajuan ini?')) return;
-        const ym = item.tanggal.slice(0,7);
-        if(!jadwalData[ym]) return;
-        const row = jadwalData[ym].find(it=>it.tanggal===item.tanggal);
-        const swapRow = jadwalData[ym].find(it=>it.tanggal===item.tukarTanggal);
-        if(row && swapRow){
-          const tmp = row.off; 
-          row.off = swapRow.off; 
-          swapRow.off = tmp;
-          row.pengganti = ''; 
-          swapRow.pengganti = '';
-          await PENGAJUAN_COLLECTION.doc(item.id).update({status:'Approved', approvedBy:ADMIN_UID});
-          await saveFirestoreJadwal(ym);
-          popupShow(true,'Approval berhasil','Tanggal: '+item.tanggal+' ↔ '+item.tukarTanggal);
-        }
-      };
-      tdA.appendChild(btnApprove);
-
-      const btnReject = document.createElement('button');
-      btnReject.textContent = 'Tolak';
-      btnReject.className = 'btn-mini btn-off';
-      btnReject.style.marginLeft = '6px';
-      btnReject.onclick = async()=>{
-        if(!confirm('Yakin ingin MENOLAK pengajuan ini?')) return;
-        await PENGAJUAN_COLLECTION.doc(item.id).update({status:'Rejected', rejectedBy:ADMIN_UID});
-        popupShow(false,'Pengajuan ditolak','Tanggal: '+item.tanggal);
-      };
-      tdA.appendChild(btnReject);
-
-      tr.appendChild(tdA);
-    } else {
-      tr.appendChild(document.createElement('td'));
-    }
-    tbody.appendChild(tr);
-  });
-}
-
-// ===== Quick Re-render =====
-function quickSync(){ 
-  const ym=document.getElementById('monthPick').value;
-  renderJadwal(ym); 
-  renderAbsensi(ym); 
-  renderRekap(ym); 
-  renderApproval();
-}
-
-// ===== Form Pengajuan =====
-function setupFormPengajuan(){
-  const tanggalSel = document.getElementById('pengajuanTanggal');
-  const kurirSel = document.getElementById('penggantiKurir');
-  const tanggalTukarSel = document.getElementById('tanggalTukar');
-  const ym = document.getElementById('monthPick').value;
-
-  tanggalSel.innerHTML = ''; 
-  kurirSel.innerHTML=''; 
-  tanggalTukarSel.innerHTML='';
-
-  if(!jadwalData[ym]) return;
-
-  // Isi pilihan tanggal apapun (agar jelas siapa off)
-  jadwalData[ym].forEach(it=>{
-    const opt = document.createElement('option'); 
-    opt.value=it.tanggal;
-    opt.textContent = it.tanggal + (it.off?` (Off: ${it.off})`:' (Semua On)');
-    tanggalSel.appendChild(opt);
-  });
-
-  // Isi list kurir
-  kurirList.forEach(k=>{
-    const opt = document.createElement('option'); 
-    opt.value=k; 
-    opt.textContent=k; 
-    kurirSel.appendChild(opt);
-  });
-
-  function refreshTanggalTukar(){
-    const kurir = kurirSel.value;
-    tanggalTukarSel.innerHTML='';
-    // Tanggal tukar = tanggal dimana kurir pengganti sedang OFF
-    jadwalData[ym].forEach(it=>{
-      if(it.off===kurir){
-        const opt = document.createElement('option'); 
-        opt.value=it.tanggal; 
-        opt.textContent=it.tanggal; 
-        tanggalTukarSel.appendChild(opt);
-      }
-    });
-    // Jika kosong, beri placeholder
-    if(!tanggalTukarSel.children.length){
-      const opt=document.createElement('option');
-      opt.value=''; opt.textContent='(Kurir ini tidak punya OFF di bulan ini)'; 
-      tanggalTukarSel.appendChild(opt);
-    }
-  }
-
-  tanggalSel.onchange = refreshTanggalTukar;
-  kurirSel.onchange = refreshTanggalTukar;
-  refreshTanggalTukar();
-}
-
-// ===== Firestore I/O =====
-async function saveFirestoreJadwal(ym){
-  if(jadwalData[ym]) {
-    await JADWAL_COLLECTION.doc(ym).set({data:jadwalData[ym]});
-  }
-}
-
-async function saveKurirList(){
-  await MASTER_DOC.set({kurirList,updated:new Date().toISOString()});
-}
-
-// ===== Realtime Listeners =====
-function listenMasterKurir(){
-  MASTER_DOC.onSnapshot(async doc=>{
-    if(doc.exists){
-      kurirList = Array.isArray(doc.data().kurirList) ? doc.data().kurirList : [];
-      quickSync();
-      setupFormPengajuan();
-    }else{
-      // Jika belum ada, biarkan fallback lokal tampil; admin bisa klik "Save" untuk membuatnya.
-      quickSync();
-      setupFormPengajuan();
-    }
-  });
-}
-
-function listenJadwal(ym){
-  if(unsubJadwal) { unsubJadwal(); unsubJadwal=null; }
-  unsubJadwal = JADWAL_COLLECTION.doc(ym).onSnapshot(async doc=>{
-    if(doc.exists){
-      jadwalData[ym] = doc.data().data || [];
-      quickSync();
-      setupFormPengajuan();
-    }else{
-      // jika dokumen bulan ini belum ada, buat berdasarkan kurirList yang ada
-      generateFairOffForMonth(ym);
-      await saveFirestoreJadwal(ym);
-      popupShow(true,'Jadwal dibuat','Bulan '+ym);
-    }
-  });
-}
-
-function listenPengajuan(){
-  PENGAJUAN_COLLECTION.orderBy('created','desc').onSnapshot(snap=>{
-    pengajuanCache = [];
-    snap.forEach(doc=>{
-      const d = doc.data();
-      pengajuanCache.push({ id: doc.id, ...d });
-    });
-    renderApproval();
-  });
-}
-
-// ===== Tabs =====
-document.querySelectorAll('.topbar .btn[data-tab]').forEach(b=>{ 
-  b.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.topbar .btn[data-tab]').forEach(bb=>bb.classList.remove('active'));
-    document.getElementById(b.dataset.tab).classList.add('active'); 
+  // Tabs
+  qsa('.tabs .btn').forEach(b=>b.addEventListener('click',()=>{
+    qsa('.tabs .btn').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
+    qsa('.tab').forEach(t=>t.classList.add('hidden'));
+    el(b.dataset.tab).classList.remove('hidden');
+  }));
+
+  // Toast
+  function toast(msg){ const t=el('toast'); t.innerText=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+
+  // Login
+  el('btnLogin').onclick = async () => {
+    const email = el('loginEmail').value.trim();
+    const pass = el('loginPass').value.trim();
+    try{
+      const cred = await signInWithEmailAndPassword(auth,email,pass);
+      if(cred.user.uid!==ADMIN_UID){ el('loginMsg').innerText='Bukan admin'; return; }
+      el('loginCard').classList.add('hidden');
+      el('app').classList.remove('hidden');
+      el('btnLogout').classList.remove('hidden');
+      toast('✅ Login sebagai Admin');
+      await loadAll();
+    }catch(e){ el('loginMsg').innerText = e.message; }
+  };
+  el('btnLogout').onclick = () => location.reload();
+
+  async function loadAll(){
+    await Promise.all([loadNota(), loadKurir(), loadOngkir()]);
+    buildNoNotaDatalist();
+    renderList(allData);
+    fillRekapKurir();
   }
-});
 
-// ===== Admin Actions =====
-document.getElementById('btn-add').onclick=async()=>{
-  if(!isFirebaseAdmin) return alert('Admin saja.');
-  const nama=prompt('Nama Kurir baru:'); 
-  if(nama){ kurirList.push(nama.trim()); await saveKurirList(); popupShow(true,'Kurir ditambahkan',nama); }
-};
-document.getElementById('btn-del').onclick=async()=>{
-  if(!isFirebaseAdmin) return alert('Admin saja.');
-  const nama=prompt('Hapus kurir (ketik persis):'); 
-  const idx=kurirList.indexOf(nama);
-  if(idx>-1){ kurirList.splice(idx,1); await saveKurirList(); popupShow(true,'Kurir dihapus',nama); }
-};
-document.getElementById('btn-regen').onclick=async()=>{
-  if(!isFirebaseAdmin) return alert('Admin saja.');
-  const ym=document.getElementById('monthPick').value; 
-  if(!ym) return; 
-  generateFairOffForMonth(ym); 
-  await saveFirestoreJadwal(ym);
-  popupShow(true,'Regenerasi selesai',ym);
-};
-document.getElementById('btn-save').onclick=async()=>{
-  if(!isFirebaseAdmin) return alert('Admin saja.');
-  try{ 
-    await saveKurirList();
-    const ym=document.getElementById('monthPick').value;
-    if(jadwalData[ym]) await saveFirestoreJadwal(ym);
-    popupShow(true,'Data disimpan di Firestore'); 
-  }catch(e){ popupShow(false,'Gagal save: '+e.message); }
-};
+  // ==================== Loaders ====================
+  async function loadNota(){
+    const snap = await get(ref(db,'nota'));
+    allData = snap.exists()?snap.val():{};
+    Object.keys(allData).forEach(k=>kurirSet.add(k));
+    fillKurirFilter();
+  }
+  async function loadKurir(){
+    const snap = await get(ref(db,'kurir'));
+    if(snap.exists()){
+      const obj = snap.val();
+      Object.keys(obj).forEach(k=>kurirSet.add(k));
+    }
+    fillKurirFilter();
+    fillKurirManage();
+    fillKurirDatalist();
+  }
+  async function loadOngkir(){
+    const snap = await get(ref(db,'ongkir'));
+    ongkirData = snap.exists()?snap.val():{};
+    renderOngkir();
+    fillWilayahDatalist();
+  }
 
-// ===== Pengajuan Tukar =====
-document.getElementById('btnAjukan').onclick = async()=>{
-  const tanggal = document.getElementById('pengajuanTanggal').value;
-  const pengganti = document.getElementById('penggantiKurir').value;
-  const tukarTanggal = document.getElementById('tanggalTukar').value;
-  if(!tanggal||!pengganti||!tukarTanggal) return alert('Pilih tanggal, kurir pengganti & tanggal tukar');
-
-  const ym = tanggal.slice(0,7);
-  const row = (jadwalData[ym]||[]).find(it=>it.tanggal===tanggal);
-  if(!row || !row.off) return alert('Tidak ada kurir off pada tanggal ini');
-
-  try{
-    await PENGAJUAN_COLLECTION.add({
-      tanggal,
-      tukarTanggal,
-      asal: row.off,
-      pengganti,
-      status: 'Pending',
-      created: firebase.firestore.FieldValue.serverTimestamp(),
-      uid: auth.currentUser ? auth.currentUser.uid : null,
-      email: auth.currentUser ? auth.currentUser.email : null
+  // ==================== Kelola Nota ====================
+  function fillKurirFilter(){
+    const sel = el('filterKurir');
+    sel.innerHTML = '<option value="">— Semua Kurir —</option>'+ [...kurirSet].sort().map(k=>`<option>${k}</option>`).join('');
+  }
+  function fillKurirManage(){
+    el('kurirManage').innerHTML = [...kurirSet].sort().map(k=>`<option>${k}</option>`).join('');
+  }
+  function fillKurirDatalist(){
+    el('listKurir').innerHTML = [...kurirSet].sort().map(k=>`<option value="${k}">`).join('');
+  }
+  function buildNoNotaDatalist(){
+    const list = el('listNoNota'); list.innerHTML = '';
+    Object.values(allData).forEach(notes => {
+      Object.values(notes).forEach(n=>{
+        if(n.noNota){ const opt=document.createElement('option'); opt.value=n.noNota; list.appendChild(opt); }
+      });
     });
-    popupShow('pending','Pengajuan terkirim','Tunggu approval admin');
-  }catch(e){ alert('Gagal mengirim pengajuan: '+e.message); }
-};
+  }
 
-// ===== Firebase Login =====
-document.getElementById('btn-login').onclick=()=>document.getElementById('overlay').style.display='flex';
-document.getElementById('closeOverlay').onclick=()=>document.getElementById('overlay').style.display='none';
-document.getElementById('doFirebaseLogin').onclick=async()=>{
-  const email=document.getElementById('fbEmail').value.trim();
-  const pass=document.getElementById('fbPass').value;
-  if(!email||!pass) return alert('Masukkan email & password Firebase.');
-  try{
-    const cred=await auth.signInWithEmailAndPassword(email,pass);
-    if(cred.user.uid===ADMIN_UID){
-      isFirebaseAdmin=true; setAdminUI(true);
-      document.getElementById('overlay').style.display='none';
-      popupShow(true,'Login admin berhasil','Sekarang bisa Approve & Save');
-    }else{ await auth.signOut(); alert('UID bukan admin.'); }
-  }catch(err){ alert('Login Firebase gagal: '+(err.message||err)); console.error(err); }
-};
-document.getElementById('btn-logout').onclick=async()=>{
-  try{ await auth.signOut(); }catch(e){}
-  isFirebaseAdmin=false; setAdminUI(false); popupShow(true,'Logout berhasil');
-};
+  function withinFilters(n){
+    const fK = el('filterKurir').value;
+    const fD = el('filterTanggal').value; // YYYY-MM-DD
+    const fM = el('filterBulan').value;   // YYYY-MM
+    const fY = el('filterTahun').value;   // YYYY
 
-function setAdminUI(show){
-  document.getElementById('adminBar').style.display=show?'flex':'none';
-  document.getElementById('btn-absensi-tab').style.display=show?'':'none';
-  document.getElementById('btn-approval-tab').style.display=show?'':'none';
-  document.getElementById('btn-login').style.display=show?'none':'';
-  document.getElementById('btn-logout').style.display=show?'':'none';
-  quickSync();
-}
+    if (fK && n.kurir !== fK) return false;
+    if (fD && (n.createdAt||'').slice(0,10) !== fD) return false;
+    if (fM && (n.createdAt||'').slice(0,7)  !== fM) return false;
+    if (fY && (n.createdAt||'').slice(0,4)  !== fY) return false;
+    return true;
+  }
 
-// ===== Init =====
-const monthPick = document.getElementById('monthPick');
-monthPick.value = new Date().toISOString().slice(0,7);
+  function applyFilter(){
+    const cariNota = el('filterCariNota').value.trim();
+    if (cariNota){
+      // override: tampilkan hanya yang nomor nota cocok
+      const res = {};
+      Object.entries(allData).forEach(([k,notes])=>{
+        Object.values(notes).forEach(n=>{
+          if((n.noNota||'')===cariNota){ if(!res[k]) res[k]={}; res[k][n.id]=n; }
+        });
+      });
+      renderList(res);
+      return;
+    }
+    // filter biasa
+    const res = {};
+    Object.entries(allData).forEach(([k,notes])=>{
+      Object.values(notes).forEach(n=>{
+        if(withinFilters(n)){ if(!res[k]) res[k]={}; res[k][n.id]=n; }
+      });
+    });
+    renderList(res);
+  }
+  window.applyFilter = applyFilter;
+  window.clearFilter = ()=>{
+    el('filterKurir').value=''; el('filterTanggal').value=''; el('filterBulan').value=''; el('filterTahun').value=''; el('filterCariNota').value='';
+    renderList(allData);
+  };
 
-// Realtime master kurir & pengajuan (sekali di-init)
-listenMasterKurir();
-listenPengajuan();
+  function renderList(data){
+    const wrap = el('notaList');
+    wrap.innerHTML='';
+    if(!Object.keys(data||{}).length){ wrap.innerHTML='<i>Tidak ada data</i>'; return; }
+    Object.entries(data).forEach(([user,notes])=>{
+      const card=document.createElement('div'); card.className='card';
+      const totalUser = Object.values(notes||{}).reduce((s,n)=>s+(n.total||0),0);
+      card.innerHTML = `<h3>Kurir: ${user} — Total: Rp ${money(totalUser)}</h3>`;
+      const tbl=document.createElement('table');
+      tbl.innerHTML = `<thead><tr><th>No Nota</th><th>Tanggal</th><th>Ongkir</th><th>Tambahan</th><th>Total</th><th>Aksi</th></tr></thead><tbody></tbody>`;
+      const tb=tbl.querySelector('tbody');
+      Object.values(notes||{}).sort((a,b)=> (a.createdAt||'').localeCompare(b.createdAt||'')).forEach(n=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${n.noNota||''}</td>
+                        <td>${n.createdAt ? new Date(n.createdAt).toLocaleString('id-ID') : '-'}</td>
+                        <td>Rp ${money(n.ongkir||0)}</td>
+                        <td>Rp ${money(n.tambahan||0)}</td>
+                        <td><b>Rp ${money(n.total||0)}</b></td>
+                        <td class="flex">
+                          <button class="btn secondary" onclick="viewNota('${user}','${n.id}')">👁 Lihat</button>
+                          <button class="btn" onclick="editNota('${user}','${n.id}')">✏️ Edit</button>
+                          <button class="btn danger" onclick="delNota('${user}','${n.id}')">🗑 Hapus</button>
+                        </td>`;
+        tb.appendChild(tr);
+      });
+      card.appendChild(tbl);
+      wrap.appendChild(card);
+    });
+  }
 
-// Listener jadwal per-bulan (ubah saat monthPick berubah)
-listenJadwal(monthPick.value);
-monthPick.onchange = ()=> listenJadwal(monthPick.value);
+  // Add/Edit form
+  function showAddForm(){
+    editing = null;
+    el('formTitle').innerText='Tambah Nota';
+    el('formKurir').value=''; el('formNoNota').value='';
+    el('formOngkir').value=0; el('formTambahan').value=0; el('formText').value='';
+    qs('#itemTable tbody').innerHTML=''; addItemRow();
+    el('formTotal').innerText='0';
+    el('notaForm').classList.remove('hidden');
+    fillKurirDatalist();
+  }
+  window.showAddForm = showAddForm;
+  window.cancelNota = ()=> el('notaForm').classList.add('hidden');
+
+  function addItemRow(nama='',qty=1,harga=0){
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td><input class="iname" value="${nama}"></td>
+                    <td><input class="iqty" type="number" value="${qty}"></td>
+                    <td><input class="iprice" type="number" value="${harga}"></td>
+                    <td><button class="btn danger" onclick="this.closest('tr').remove();calcTotal()">✖</button></td>`;
+    qs('#itemTable tbody').appendChild(tr);
+    tr.querySelectorAll('input').forEach(i=>i.addEventListener('input', calcTotal));
+    calcTotal();
+  }
+  window.addItemRow = addItemRow;
+
+  function calcTotal(){
+    let total=0;
+    qsa('#itemTable tbody tr').forEach(tr=>{
+      const q=Number(tr.querySelector('.iqty').value)||0;
+      const h=Number(tr.querySelector('.iprice').value)||0;
+      total += q*h;
+    });
+    total += Number(el('formOngkir').value||0);
+    total += Number(el('formTambahan').value||0);
+    el('formTotal').innerText = money(total);
+  }
+  el('formOngkir').addEventListener('input', calcTotal);
+  el('formTambahan').addEventListener('input', calcTotal);
+
+  async function saveNota(){
+    const user = el('formKurir').value.trim();
+    if(!user) return alert('Isi nama kurir');
+    const noNota = el('formNoNota').value.trim() || ('NN-'+Date.now().toString().slice(-6));
+    const items = qsa('#itemTable tbody tr').map(tr=>({
+      nama: tr.querySelector('.iname').value,
+      qty: Number(tr.querySelector('.iqty').value)||0,
+      harga: Number(tr.querySelector('.iprice').value)||0,
+    }));
+    const ongkir = Number(el('formOngkir').value||0);
+    const tambahan = Number(el('formTambahan').value||0);
+    const text = el('formText').value||'';
+    const total = items.reduce((s,it)=>s+it.qty*it.harga,0)+ongkir+tambahan;
+    let id, createdAt;
+    if(editing){ id=editing.id; createdAt=editing.createdAt; }
+    else { id='nota_'+Date.now(); createdAt=new Date().toISOString(); }
+
+    const data = { id, kurir:user, noNota, createdAt, items, ongkir, tambahan, total, text };
+    await set(ref(db, `nota/${user}/${id}`), data);
+    // simpan nama kurir ke daftar
+    await set(ref(db, `kurir/${user}`), true);
+    kurirSet.add(user);
+    await loadNota();
+    buildNoNotaDatalist();
+    renderList(allData);
+    el('notaForm').classList.add('hidden');
+    toast('💾 Nota disimpan');
+  }
+  window.saveNota = saveNota;
+
+  async function editNota(user,id){
+    const snap = await get(ref(db,`nota/${user}/${id}`));
+    if(!snap.exists()) return alert('Nota tidak ditemukan');
+    const n = snap.val();
+    editing = {id, createdAt:n.createdAt};
+    el('formTitle').innerText='Edit Nota';
+    el('formKurir').value=user;
+    el('formNoNota').value=n.noNota||'';
+    el('formOngkir').value=n.ongkir||0;
+    el('formTambahan').value=n.tambahan||0;
+    el('formText').value=n.text||'';
+    qs('#itemTable tbody').innerHTML='';
+    (n.items||[]).forEach(it=>addItemRow(it.nama,it.qty,it.harga));
+    el('notaForm').classList.remove('hidden');
+    calcTotal();
+  }
+  window.editNota = editNota;
+
+  async function delNota(user,id){
+    if(!confirm('Hapus nota ini?')) return;
+    await remove(ref(db,`nota/${user}/${id}`));
+    await loadNota();
+    renderList(allData);
+    toast('🗑 Nota dihapus');
+  }
+  window.delNota = delNota;
+
+  function viewNota(user,id){
+    const n = allData?.[user]?.[id];
+    if(!n) return;
+    const w = window.open('', '_blank');
+    w.document.write('<title>Nota '+(n.noNota||'')+'</title><pre style="font-family:ui-monospace,Consolas,monospace">'+JSON.stringify(n,null,2)+'</pre>');
+    w.document.close();
+  }
+  window.viewNota = viewNota;
+
+  // Export CSV (mengikuti hasil render/filter di layar)
+  function exportCSV(){
+    // kumpulkan tabel yang sedang ditampilkan
+    const rows = [["Kurir","No Nota","Tanggal","Ongkir","Tambahan","Total"]];
+    // build from currently filtered DOM
+    const cards = qsa('#notaList .card');
+    cards.forEach(card=>{
+      const title = card.querySelector('h3')?.innerText || '';
+      const user = title.replace(/^Kurir:\s*/,'').split(' — ')[0];
+      card.querySelectorAll('tbody tr').forEach(tr=>{
+        const tds = tr.querySelectorAll('td');
+        rows.push([user, tds[0].innerText, tds[1].innerText, tds[2].innerText.replace('Rp ','').replaceAll('.',''), tds[3].innerText.replace('Rp ','').replaceAll('.',''), tds[4].innerText.replace('Rp ','').replaceAll('.','')]);
+      });
+    });
+    downloadCSV(rows, 'nota_filtered.csv');
+  }
+  window.exportCSV = exportCSV;
+
+  // ==================== Rekap & Riwayat ====================
+  function fillRekapKurir(){
+    const sel = el('rekapKurir');
+    sel.innerHTML = '<option value="">— Semua Kurir —</option>' + [...kurirSet].sort().map(k=>`<option>${k}</option>`).join('');
+  }
+
+  async function renderRekap(){
+    const k = el('rekapKurir').value;
+    const m = el('rekapBulan').value; // YYYY-MM
+
+    // Coba ambil dari /rekap (jika ada), fallback hitung dari /nota
+    let rows = [];
+    let total = 0; let count = 0; let totOngkir=0; let totTambahan=0;
+
+    const push = (n)=>{
+      const dt = n.createdAt ? new Date(n.createdAt).toLocaleDateString('id-ID') : '-';
+      rows.push([dt, n.noNota||'', n.ongkir||0, n.tambahan||0, n.total||0]);
+      count++; total += (n.total||0); totOngkir += (n.ongkir||0); totTambahan += (n.tambahan||0);
+    };
+
+    if(k){
+      const notes = allData[k]||{};
+      Object.values(notes).forEach(n=>{
+        if(m){ if((n.createdAt||'').slice(0,7)!==m) return; }
+        push(n);
+      });
+    }else{
+      Object.values(allData).forEach(notes=>{
+        Object.values(notes).forEach(n=>{
+          if(m){ if((n.createdAt||'').slice(0,7)!==m) return; }
+          push(n);
+        });
+      });
+    }
+
+    el('rekapRingkas').innerHTML = `<div class="card">
+      <b>Jumlah Nota:</b> ${count} &nbsp; | &nbsp; <b>Total Ongkir:</b> Rp ${money(totOngkir)}
+      &nbsp; | &nbsp; <b>Total Tambahan:</b> Rp ${money(totTambahan)} &nbsp; | &nbsp; <b>Total Penghasilan:</b> Rp ${money(total)}
+    </div>`;
+
+    const thead = '<thead><tr><th>Tanggal</th><th>No Nota</th><th>Ongkir</th><th>Tambahan</th><th>Total</th></tr></thead>';
+    const tbody = '<tbody>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>Rp ${money(r[2])}</td><td>Rp ${money(r[3])}</td><td><b>Rp ${money(r[4])}</b></td></tr>`).join('')+'</tbody>';
+    el('rekapTabel').innerHTML = `<table>${thead}${tbody}</table>`;
+  }
+  window.renderRekap = renderRekap;
+
+  function exportCSVRekap(){
+    const rows=[["Tanggal","No Nota","Ongkir","Tambahan","Total"]];
+    el('rekapTabel').querySelectorAll('tbody tr').forEach(tr=>{
+      const t=tr.querySelectorAll('td');
+      rows.push([t[0].innerText,t[1].innerText,t[2].innerText.replace('Rp ','').replaceAll('.',''),t[3].innerText.replace('Rp ','').replaceAll('.',''),t[4].innerText.replace('Rp ','').replaceAll('.','')]);
+    });
+    downloadCSV(rows,'rekap.csv');
+  }
+  window.exportCSVRekap = exportCSVRekap;
+
+  // ==================== Manajemen Kurir ====================
+  // Buat akun kurir via REST Identity Toolkit (tidak mengubah sesi admin)
+  async function createAuthUserEmailPassword(email,password){
+    const url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+firebaseConfig.apiKey;
+    const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password, returnSecureToken:true})});
+    if(!res.ok){ const t=await res.json(); throw new Error(t.error?.message||'Gagal membuat akun'); }
+    return await res.json(); // {localId, email, idToken, ...}
+  }
+
+  async function tambahKurir(){
+    const uname = el('kurirBaru').value.trim();
+    const pass = el('kurirPass').value.trim();
+    if(!uname || pass.length<6) return alert('Isi username & password min 6 karakter');
+    const email = uname.replace(/\s+/g,'.').toLowerCase()+'@kurir.local';
+    try{
+      await createAuthUserEmailPassword(email, pass);
+    }catch(e){
+      // Jika akun sudah ada, lanjutkan simpan di DB saja
+      console.warn('create user warn:', e.message);
+    }
+    await set(ref(db, 'kurir/'+uname), { username: uname, email, enabled: true, createdAt: new Date().toISOString() });
+    kurirSet.add(uname);
+    fillKurirFilter(); fillKurirManage(); fillKurirDatalist();
+    toast('✅ Kurir ditambahkan');
+    el('kurirBaru').value=''; el('kurirPass').value='';
+  }
+  window.tambahKurir = tambahKurir;
+
+  async function hapusKurir(){
+    const uname = el('kurirManage').value;
+    if(!uname) return;
+    if(!confirm('Hapus kurir "'+uname+'"? Akses login akan dinonaktifkan.')) return;
+    // Nonaktifkan di DB (aplikasi kurir harus cek enabled)
+    await remove(ref(db, 'kurir/'+uname));
+    kurirSet.delete(uname);
+    fillKurirFilter(); fillKurirManage(); fillKurirDatalist();
+    toast('🗑 Kurir dihapus');
+  }
+  window.hapusKurir = hapusKurir;
+
+  // ==================== Manajemen Ongkir ====================
+  function renderOngkir(){
+    const div = el('ongkirTabel');
+    const rows = Object.entries(ongkirData||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+    if(!rows.length){ div.innerHTML = '<i>Belum ada wilayah.</i>'; return; }
+    const thead = '<thead><tr><th>Wilayah</th><th>Ongkir</th><th>Aksi</th></tr></thead>';
+    const tbody = '<tbody>'+rows.map(([w,h])=>`
+      <tr>
+        <td><input value="${w}" data-old="${w}" class="wilayahName"></td>
+        <td><input type="number" value="${h}" class="wilayahHarga"></td>
+        <td class="flex">
+          <button class="btn" onclick="saveOngkirRow(this)">Save</button>
+          <button class="btn danger" onclick="deleteOngkirRow(this)">Hapus</button>
+        </td>
+      </tr>`).join('') + '</tbody>';
+    div.innerHTML = `<table>${thead}${tbody}</table>`;
+  }
+  function fillWilayahDatalist(){
+    const dl = el('wilayahList'); dl.innerHTML = Object.keys(ongkirData||{}).sort().map(w=>`<option value="${w}">`).join('');
+  }
+  async function simpanOngkir(){
+    const w = el('wilayahInput').value.trim();
+    const h = Number(el('hargaOngkir').value||0);
+    if(!w) return alert('Isi wilayah');
+    await set(ref(db,'ongkir/'+w), h);
+    ongkirData[w]=h;
+    el('wilayahInput').value=''; el('hargaOngkir').value='';
+    renderOngkir(); fillWilayahDatalist(); toast('💾 Ongkir disimpan');
+  }
+  async function hapusOngkir(){
+    const w = el('wilayahInput').value.trim();
+    if(!w) return alert('Pilih wilayah');
+    await remove(ref(db,'ongkir/'+w));
+    delete ongkirData[w];
+    renderOngkir(); fillWilayahDatalist(); toast('🗑 Wilayah dihapus');
+  }
+  window.simpanOngkir = simpanOngkir;
+  window.hapusOngkir  = hapusOngkir;
+
+  async function saveOngkirRow(btn){
+    const tr = btn.closest('tr');
+    const old = tr.querySelector('.wilayahName').dataset.old;
+    const w = tr.querySelector('.wilayahName').value.trim();
+    const h = Number(tr.querySelector('.wilayahHarga').value||0);
+    if(old!==w){ // rename key: delete old then set new
+      await remove(ref(db,'ongkir/'+old));
+    }
+    await set(ref(db,'ongkir/'+w), h);
+    delete ongkirData[old]; ongkirData[w]=h;
+    renderOngkir(); fillWilayahDatalist(); toast('✅ Disimpan');
+  }
+  async function deleteOngkirRow(btn){
+    const tr = btn.closest('tr');
+    const w = tr.querySelector('.wilayahName').value.trim();
+    if(!confirm('Hapus wilayah "'+w+'"?')) return;
+    await remove(ref(db,'ongkir/'+w));
+    delete ongkirData[w];
+    renderOngkir(); fillWilayahDatalist(); toast('🗑 Dihapus');
+  }
+  window.saveOngkirRow = saveOngkirRow;
+  window.deleteOngkirRow = deleteOngkirRow;
+
+  // ==================== Utils ====================
+  function downloadCSV(rows,filename){
+    const csv = rows.map(r=>r.map(c=>{
+      const v=(c===undefined||c===null)?'':String(c);
+      if(/[",\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+      return v;
+    }).join(',')).join('\\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+  }
 </script>
 </body>
 </html>
