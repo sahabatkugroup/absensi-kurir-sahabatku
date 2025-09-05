@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -384,8 +385,14 @@
         tr.innerHTML = `<td>${n.noNota||''}</td>
                         <td>${n.createdAt ? new Date(n.createdAt).toLocaleString('id-ID') : '-'}</td>
                         <td>Rp ${money(n.ongkir||0)}</td>
-                        <td>Rp ${money(n.tambahan||0)}</td>
-                        <td><b>Rp ${money(n.total||0)}</b></td>
+                        <td>Rp ${money(n.tambahans ? Object.values(n.tambahans).reduce((s,t)=>s+(t.nominal||0),0) : (n.tambahan||0))}</td>
+                        <td><b>Rp ${money(
+                          (n.ongkir||0) + (
+                            n.tambahans 
+                              ? Object.values(n.tambahans).reduce((s,t)=>s+(t.nominal||0),0) 
+                              : (n.tambahan||0)
+                          )
+                        )}</b></td>
                         <td class="flex">
                           <button class="btn secondary" onclick="viewNota('${user}','${n.id}')">👁 Lihat</button>
                           <button class="btn" onclick="editNota('${user}','${n.id}')">✏️ Edit</button>
@@ -448,14 +455,14 @@
       harga: Number(tr.querySelector('.iprice').value)||0,
     }));
     const ongkir = Number(el('formOngkir').value||0);
-    const tambahan = Number(el('formTambahan').value||0);
-    const text = el('formText').value||'';
-    const total = items.reduce((s,it)=>s+it.qty*it.harga,0)+ongkir+tambahan;
+    const tambahanNominal = Number(el('formTambahan').value||0);
+    const tambahans = tambahanNominal>0 ? [{nominal:tambahanNominal, type:"Tambahan Manual"}] : [];    const text = el('formText').value||'';
+    const total = items.reduce((s,it)=>s+it.qty*it.harga,0)+ongkir+tambahans.reduce((s,t)=>s+(t.nominal||0),0);
     let id, createdAt;
     if(editing){ id=editing.id; createdAt=editing.createdAt; }
     else { id='nota_'+Date.now(); createdAt=new Date().toISOString(); }
 
-    const data = { id, kurir:user, noNota, createdAt, items, ongkir, tambahan, total, text };
+    const data = { id, kurir:user, noNota, createdAt, items, ongkir, tambahans, total, text };
     await set(ref(db, `nota/${user}/${id}`), data);
     // simpan nama kurir ke daftar
     await set(ref(db, `kurir/${user}`), true);
@@ -538,8 +545,11 @@
 
     const push = (n)=>{
       const dt = n.createdAt ? new Date(n.createdAt).toLocaleDateString('id-ID') : '-';
-      rows.push([dt, n.noNota||'', n.ongkir||0, n.tambahan||0, n.total||0]);
-      count++; total += (n.total||0); totOngkir += (n.ongkir||0); totTambahan += (n.tambahan||0);
+      const tambahanSum = n.tambahans ? Object.values(n.tambahans).reduce((s,t)=>s+(t.nominal||0),0) : (n.tambahan||0);
+      const totalNota = (n.ongkir||0) + tambahanSum;
+      
+      rows.push([dt, n.noNota||'', n.ongkir||0, tambahanSum, totalNota]);
+      count++; total += totalNota; totOngkir += (n.ongkir||0); totTambahan += tambahanSum;
     };
 
     if(k){
