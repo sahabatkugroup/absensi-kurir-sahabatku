@@ -162,33 +162,36 @@
         <div class="flex"><button class="btn secondary" onclick="exportCSVRekap()">⬇ Export CSV (Rekap)</button></div>
       </div>
 
-      <!-- Manajemen Kurir -->
-      <div id="tabKurir" class="card tab hidden">
-        <div class="row">
-          <div>
-            <label>Tambah Kurir Baru</label>
-            <input id="kurirBaru" placeholder="Nama kurir (username)">
+        <!-- Manajemen Kurir -->
+        <div id="tabKurir" class="card tab hidden">
+          <div class="row">
+            <div>
+              <label>Tambah Kurir Baru</label>
+              <input id="kurirBaru" placeholder="Nama kurir (username)">
+            </div>
+            <div>
+              <label>Password (kurir)</label>
+              <input id="kurirPass" type="password" placeholder="minimal 6 karakter">
+            </div>
           </div>
-          <div>
-            <label>Password (kurir)</label>
-            <input id="kurirPass" type="password" placeholder="minimal 6 karakter">
+          <div class="flex">
+            <button class="btn" onclick="tambahKurir()">+ Tambah Kurir</button>
+            <span class="pill">Akun dibuat di Auth (email: username@kurir.local) & daftar kurir di DB.</span>
           </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+          <div class="row">
+            <div>
+              <label>Hapus Kurir</label>
+              <select id="kurirManage"></select>
+            </div>
+            <div style="align-self:end">
+              <button class="btn danger" onclick="hapusKurir()">Hapus Kurir</button>
+            </div>
+          </div>
+          <small>Catatan: Menghapus kurir akan menonaktifkan akses di aplikasi kurir dengan menghapus entri kurir di DB. (Penghapusan akun Auth penuh memerlukan server admin.)</small>
+        <div>
+          <button onclick="ubahPasswordKurir()">Ubah Password</button>
         </div>
-        <div class="flex">
-          <button class="btn" onclick="tambahKurir()">+ Tambah Kurir</button>
-          <span class="pill">Akun dibuat di Auth (email: username@kurir.local) & daftar kurir di DB.</span>
-        </div>
-        <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
-        <div class="row">
-          <div>
-            <label>Hapus Kurir</label>
-            <select id="kurirManage"></select>
-          </div>
-          <div style="align-self:end">
-            <button class="btn danger" onclick="hapusKurir()">Hapus Kurir</button>
-          </div>
-        </div>
-        <small>Catatan: Menghapus kurir akan menonaktifkan akses di aplikasi kurir dengan menghapus entri kurir di DB. (Penghapusan akun Auth penuh memerlukan server admin.)</small>
       </div>
 
       <!-- Manajemen Ongkir -->
@@ -221,6 +224,7 @@
   import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
   import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyCtva8TeL40-WotK4kFL_vL8uUXL3GDfww",
     authDomain: "sahabatkuu-bisa.firebaseapp.com",
@@ -588,107 +592,176 @@
   }
   window.exportCSVRekap = exportCSVRekap;
 
-  // ==================== Manajemen Kurir ====================
-  // Buat akun kurir via REST Identity Toolkit (tidak mengubah sesi admin)
-  async function createAuthUserEmailPassword(email,password){
-    const url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+firebaseConfig.apiKey;
-    const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password, returnSecureToken:true})});
-    if(!res.ok){ const t=await res.json(); throw new Error(t.error?.message||'Gagal membuat akun'); }
-    return await res.json(); // {localId, email, idToken, ...}
-  }
-
-  async function tambahKurir(){
-    const uname = el('kurirBaru').value.trim();
-    const pass = el('kurirPass').value.trim();
-    if(!uname || pass.length<6) return alert('Isi username & password min 6 karakter');
-    const email = uname.replace(/\s+/g,'.').toLowerCase()+'@kurir.local';
-    try{
-      await createAuthUserEmailPassword(email, pass);
-    }catch(e){
-      // Jika akun sudah ada, lanjutkan simpan di DB saja
-      console.warn('create user warn:', e.message);
+    // ==================== Manajemen Kurir ====================
+    // Buat akun kurir via REST Identity Toolkit (tidak mengubah sesi admin)
+    async function createAuthUserEmailPassword(email,password){
+      const url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+firebaseConfig.apiKey;
+      const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password, returnSecureToken:true})});
+      if(!res.ok){ const t=await res.json(); throw new Error(t.error?.message||'Gagal membuat akun'); }
+      return await res.json(); // {localId, email, idToken, ...}
     }
-    await set(ref(db, 'kurir/'+uname), { username: uname, email, enabled: true, createdAt: new Date().toISOString() });
-    kurirSet.add(uname);
-    fillKurirFilter(); fillKurirManage(); fillKurirDatalist();
-    toast('✅ Kurir ditambahkan');
-    el('kurirBaru').value=''; el('kurirPass').value='';
-  }
-  window.tambahKurir = tambahKurir;
 
-  async function hapusKurir(){
+    async function tambahKurir(){
+      const uname = el('kurirBaru').value.trim();
+      const pass = el('kurirPass').value.trim();
+      if(!uname || pass.length < 6) return alert('Isi username & password min 6 karakter');
+
+      const email = uname.replace(/\s+/g,'.').toLowerCase() + '@kurir.local';
+
+      // Simpan data kurir + password
+      await set(ref(db, 'kurir/' + uname), { 
+        username: uname, 
+        email, 
+        password: pass,     // ✅ simpan password
+        enabled: true, 
+        createdAt: new Date().toISOString() 
+      });
+
+      kurirSet.add(uname);
+      fillKurirFilter(); 
+      fillKurirManage(); 
+      fillKurirDatalist();
+      toast('✅ Kurir ditambahkan');
+
+      el('kurirBaru').value = ''; 
+      el('kurirPass').value = '';
+    }
+    window.tambahKurir = tambahKurir;
+
+
+    async function hapusKurir(){
+      const uname = el('kurirManage').value;
+      if(!uname) return;
+
+      if(!confirm(`Hapus kurir "${uname}"?`)) return;
+
+      // ❌ hapus data kurir dari DB
+      await remove(ref(db, 'kurir/' + uname));
+
+      kurirSet.delete(uname);
+      fillKurirFilter(); 
+      fillKurirManage(); 
+      fillKurirDatalist();
+      toast('🗑 Kurir dihapus');
+    }
+    window.hapusKurir = hapusKurir;
+
+    async function ubahPasswordKurir(){
     const uname = el('kurirManage').value;
-    if(!uname) return;
-    if(!confirm('Hapus kurir "'+uname+'"? Akses login akan dinonaktifkan.')) return;
-    // Nonaktifkan di DB (aplikasi kurir harus cek enabled)
-    await remove(ref(db, 'kurir/'+uname));
-    kurirSet.delete(uname);
-    fillKurirFilter(); fillKurirManage(); fillKurirDatalist();
-    toast('🗑 Kurir dihapus');
+    const newPass = prompt(`Masukkan password baru untuk ${uname}:`, "");
+    if(!uname || !newPass) return;
+
+    // Update password di DB
+    await update(ref(db, 'kurir/' + uname), { password: newPass });
+
+    toast('🔑 Password berhasil diubah');
   }
-  window.hapusKurir = hapusKurir;
+  window.ubahPasswordKurir = ubahPasswordKurir;
+
+
 
   // ==================== Manajemen Ongkir ====================
+  // Render tabel ongkir
   function renderOngkir(){
     const div = el('ongkirTabel');
-    const rows = Object.entries(ongkirData||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+    const rows = Object.entries(ongkirData||{}).sort((a,b)=>a[1].wilayah.localeCompare(b[1].wilayah));
     if(!rows.length){ div.innerHTML = '<i>Belum ada wilayah.</i>'; return; }
+  
     const thead = '<thead><tr><th>Wilayah</th><th>Ongkir</th><th>Aksi</th></tr></thead>';
-    const tbody = '<tbody>'+rows.map(([w,h])=>`
+    const tbody = '<tbody>'+rows.map(([k,v])=>`
       <tr>
-        <td><input value="${w}" data-old="${w}" class="wilayahName"></td>
-        <td><input type="number" value="${h}" class="wilayahHarga"></td>
+        <td><input value="${v.wilayah}" data-key="${k}" class="wilayahName"></td>
+        <td><input type="number" value="${v.ongkir}" class="wilayahHarga"></td>
         <td class="flex">
           <button class="btn" onclick="saveOngkirRow(this)">Save</button>
           <button class="btn danger" onclick="deleteOngkirRow(this)">Hapus</button>
         </td>
       </tr>`).join('') + '</tbody>';
+  
     div.innerHTML = `<table>${thead}${tbody}</table>`;
   }
+  
+  // Update datalist
   function fillWilayahDatalist(){
-    const dl = el('wilayahList'); dl.innerHTML = Object.keys(ongkirData||{}).sort().map(w=>`<option value="${w}">`).join('');
+    const dl = el('wilayahList');
+    dl.innerHTML = Object.values(ongkirData||{}).sort((a,b)=>a.wilayah.localeCompare(b.wilayah))
+                      .map(v=>`<option value="${v.wilayah}">`).join('');
   }
+  
+  // Simpan wilayah baru
   async function simpanOngkir(){
     const w = el('wilayahInput').value.trim();
     const h = Number(el('hargaOngkir').value||0);
     if(!w) return alert('Isi wilayah');
-    await set(ref(db,'ongkir/'+w), h);
+    
+    // Simpan di Firebase
+    await set(ref(db,'daftar_ongkir/'+w), { wilayah:w, ongkir:h });
     ongkirData[w]=h;
-    el('wilayahInput').value=''; el('hargaOngkir').value='';
-    renderOngkir(); fillWilayahDatalist(); toast('💾 Ongkir disimpan');
-  }
-  async function hapusOngkir(){
-    const w = el('wilayahInput').value.trim();
-    if(!w) return alert('Pilih wilayah');
-    await remove(ref(db,'ongkir/'+w));
-    delete ongkirData[w];
-    renderOngkir(); fillWilayahDatalist(); toast('🗑 Wilayah dihapus');
+  
+    // Reset input & render ulang tabel
+    el('wilayahInput').value=''; 
+    el('hargaOngkir').value='';
+    renderOngkir(); 
+    fillWilayahDatalist();
+  
+    // Toast notifikasi
+    toast(`💾 Ongkir wilayah "${w}" berhasil disimpan`, 'success');
   }
   window.simpanOngkir = simpanOngkir;
-  window.hapusOngkir  = hapusOngkir;
 
+  
+  // Hapus wilayah berdasarkan input
+  async function hapusOngkir(){
+    const namaWilayah = el('wilayahInput').value.trim();
+    if(!namaWilayah) return alert('Pilih wilayah');
+  
+    const key = Object.keys(ongkirData).find(k=>ongkirData[k].wilayah === namaWilayah);
+    if(!key) return alert('Wilayah tidak ditemukan');
+  
+    await remove(ref(db,'daftar_ongkir/'+key));
+    delete ongkirData[key];
+    renderOngkir();
+    fillWilayahDatalist();
+    toast('🗑 Wilayah dihapus');
+  }
+  
+  // Save per row di tabel
   async function saveOngkirRow(btn){
     const tr = btn.closest('tr');
-    const old = tr.querySelector('.wilayahName').dataset.old;
-    const w = tr.querySelector('.wilayahName').value.trim();
-    const h = Number(tr.querySelector('.wilayahHarga').value||0);
-    if(old!==w){ // rename key: delete old then set new
-      await remove(ref(db,'ongkir/'+old));
-    }
-    await set(ref(db,'ongkir/'+w), h);
-    delete ongkirData[old]; ongkirData[w]=h;
-    renderOngkir(); fillWilayahDatalist(); toast('✅ Disimpan');
+    const key = tr.querySelector('.wilayahName').dataset.key;
+    const nama = tr.querySelector('.wilayahName').value.trim();
+    const ongkir = Number(tr.querySelector('.wilayahHarga').value||0);
+  
+    if(!nama) return alert('Isi nama wilayah');
+    if(isNaN(ongkir)) return alert('Ongkir harus angka');
+  
+    await set(ref(db, 'daftar_ongkir/' + key), { wilayah: nama, ongkir });
+    ongkirData[key] = { wilayah: nama, ongkir };
+    renderOngkir();
+    fillWilayahDatalist();
+    toast('✅ Disimpan');
   }
+  
+  // Delete per row di tabel
   async function deleteOngkirRow(btn){
     const tr = btn.closest('tr');
-    const w = tr.querySelector('.wilayahName').value.trim();
-    if(!confirm('Hapus wilayah "'+w+'"?')) return;
-    await remove(ref(db,'ongkir/'+w));
-    delete ongkirData[w];
-    renderOngkir(); fillWilayahDatalist(); toast('🗑 Dihapus');
+    const key = tr.querySelector('.wilayahName').dataset.key;
+    const nama = tr.querySelector('.wilayahName').value.trim();
+  
+    if(!confirm(`Hapus wilayah "${nama}"?`)) return;
+  
+    await remove(ref(db, 'daftar_ongkir/' + key));
+    delete ongkirData[key];
+    renderOngkir();
+    fillWilayahDatalist();
+    toast('🗑 Dihapus');
   }
+  
+  window.simpanOngkir = simpanOngkir;
+  window.hapusOngkir  = hapusOngkir;
   window.saveOngkirRow = saveOngkirRow;
   window.deleteOngkirRow = deleteOngkirRow;
+
 
   // ==================== Utils ====================
   function downloadCSV(rows,filename){
