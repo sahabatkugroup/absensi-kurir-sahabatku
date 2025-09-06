@@ -379,7 +379,13 @@
     if(!Object.keys(data||{}).length){ wrap.innerHTML='<i>Tidak ada data</i>'; return; }
     Object.entries(data).forEach(([user,notes])=>{
       const card=document.createElement('div'); card.className='card';
-      const totalUser = Object.values(notes||{}).reduce((s,n)=>s+(n.total||0),0);
+      const totalUser = Object.values(notes||{}).reduce((s,n)=>{
+        const tambahanNominal = n.tambahans 
+          ? Object.values(n.tambahans).reduce((s2,t)=>s2+(t.nominal||0),0) 
+          : (n.tambahan||0);
+        return s + (n.ongkir||0) + tambahanNominal;
+      },0);
+
       card.innerHTML = `<h3>Kurir: ${user} — Total: Rp ${money(totalUser)}</h3>`;
       const tbl=document.createElement('table');
       tbl.innerHTML = `<thead><tr><th>No Nota</th><th>Tanggal</th><th>Ongkir</th><th>Tambahan</th><th>Total</th><th>Aksi</th></tr></thead><tbody></tbody>`;
@@ -660,7 +666,20 @@
 
 
 
-  // ==================== Manajemen Ongkir ====================
+   // ==================== Manajemen Ongkir Realtime ====================
+  
+  // Listener realtime
+  import { onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+  
+  function setupOngkirRealtime(){
+    const ongkirRef = ref(db, 'daftar_ongkir');
+    onValue(ongkirRef, (snap)=>{
+      ongkirData = snap.exists() ? snap.val() : {};
+      renderOngkir();
+      fillWilayahDatalist();
+    });
+  }
+  
   // Render tabel ongkir
   function renderOngkir(){
     const div = el('ongkirTabel');
@@ -673,8 +692,8 @@
         <td><input value="${v.wilayah}" data-key="${k}" class="wilayahName"></td>
         <td><input type="number" value="${v.ongkir}" class="wilayahHarga"></td>
         <td class="flex">
-          <button class="btn" onclick="saveOngkirRow(this)">Save</button>
-          <button class="btn danger" onclick="deleteOngkirRow(this)">Hapus</button>
+          <button class="btn" onclick="saveOngkirRow(this)">💾 Save</button>
+          <button class="btn danger" onclick="deleteOngkirRow(this)">🗑 Hapus</button>
         </td>
       </tr>`).join('') + '</tbody>';
   
@@ -688,29 +707,21 @@
                       .map(v=>`<option value="${v.wilayah}">`).join('');
   }
   
-  // Simpan wilayah baru
+  // Tambah wilayah baru
   async function simpanOngkir(){
     const w = el('wilayahInput').value.trim();
     const h = Number(el('hargaOngkir').value||0);
     if(!w) return alert('Isi wilayah');
-    
-    // Simpan di Firebase
-    await set(ref(db,'daftar_ongkir/'+w), { wilayah:w, ongkir:h });
-    ongkirData[w]=h;
   
-    // Reset input & render ulang tabel
+    await set(ref(db,'daftar_ongkir/'+w), { wilayah:w, ongkir:h });
+  
     el('wilayahInput').value=''; 
     el('hargaOngkir').value='';
-    renderOngkir(); 
-    fillWilayahDatalist();
-  
-    // Toast notifikasi
-    toast(`💾 Ongkir wilayah "${w}" berhasil disimpan`, 'success');
+    toast(`💾 Ongkir wilayah "${w}" berhasil disimpan`);
   }
   window.simpanOngkir = simpanOngkir;
-
   
-  // Hapus wilayah berdasarkan input
+  // Hapus wilayah
   async function hapusOngkir(){
     const namaWilayah = el('wilayahInput').value.trim();
     if(!namaWilayah) return alert('Pilih wilayah');
@@ -719,11 +730,9 @@
     if(!key) return alert('Wilayah tidak ditemukan');
   
     await remove(ref(db,'daftar_ongkir/'+key));
-    delete ongkirData[key];
-    renderOngkir();
-    fillWilayahDatalist();
     toast('🗑 Wilayah dihapus');
   }
+  window.hapusOngkir  = hapusOngkir;
   
   // Save per row di tabel
   async function saveOngkirRow(btn){
@@ -736,11 +745,9 @@
     if(isNaN(ongkir)) return alert('Ongkir harus angka');
   
     await set(ref(db, 'daftar_ongkir/' + key), { wilayah: nama, ongkir });
-    ongkirData[key] = { wilayah: nama, ongkir };
-    renderOngkir();
-    fillWilayahDatalist();
     toast('✅ Disimpan');
   }
+  window.saveOngkirRow = saveOngkirRow;
   
   // Delete per row di tabel
   async function deleteOngkirRow(btn){
@@ -751,16 +758,12 @@
     if(!confirm(`Hapus wilayah "${nama}"?`)) return;
   
     await remove(ref(db, 'daftar_ongkir/' + key));
-    delete ongkirData[key];
-    renderOngkir();
-    fillWilayahDatalist();
     toast('🗑 Dihapus');
   }
-  
-  window.simpanOngkir = simpanOngkir;
-  window.hapusOngkir  = hapusOngkir;
-  window.saveOngkirRow = saveOngkirRow;
   window.deleteOngkirRow = deleteOngkirRow;
+  
+  // Panggil ini saat load admin panel
+  setupOngkirRealtime();
 
 
   // ==================== Utils ====================
